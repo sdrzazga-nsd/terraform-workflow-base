@@ -1,0 +1,100 @@
+name: Reusable Terraform workflow
+
+on:
+  workflow_call:
+    inputs:
+      workspaceName:
+        required: true
+        type: string
+    secrets:
+      terraformToken:
+        required: true
+jobs:
+  terraform:
+    name: "Terraform"
+    runs-on: ubuntu-latest
+   # env:
+   #   TF_WORKSPACE: ${{ inputs.workspaceName }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.3.5
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          # terraform_version: 0.13.0:
+          cli_config_credentials_token: ${{ secrets.terraformToken }}
+
+      - name: Terraform Format
+        id: fmt
+        run: terraform fmt -check
+        working-directory: ./${{ inputs.workspaceName }}
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+        working-directory: ./${{ inputs.workspaceName }}
+      
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color
+        working-directory: workspaceName
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v1.1.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Show version
+        run: tflint --version
+
+      - name: Init TFLint
+        run: tflint --init
+        working-directory: ./${{ inputs.workspaceName }}
+
+      - name: Run TFLint
+        run: tflint -f compact
+        working-directory: ./${{ inputs.workspaceName }}
+
+      - name: Terraform Plan
+        id: plan
+        if: github.event_name == 'pull_request'
+        run: terraform plan -no-color
+        working-directory: ./${{ inputs.workspaceName }}
+        continue-on-error: true
+
+      - name: Update Pull Request
+        uses: actions/github-script@5.0.0
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `\`${{env.TF_WORKSPACE}}\`
+            #### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+            
+            <details><summary>Show Plan</summary>
+
+            \`\`\`\n
+            ${process.env.PLAN}
+            \`\`\`
+
+            </details>
+
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
