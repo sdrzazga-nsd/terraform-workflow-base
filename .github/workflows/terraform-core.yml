@@ -65,7 +65,9 @@ jobs:
       - name: Terraform Plan
         id: plan
         if: github.event_name == 'pull_request'
-        run: terraform plan -no-color
+        run: |
+          pwd
+          terraform plan -no-color
         working-directory: ${{ env.WORKSPACE_PATH }}
         continue-on-error: true
 
