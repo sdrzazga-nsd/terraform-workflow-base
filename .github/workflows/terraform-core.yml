@@ -13,12 +13,20 @@ jobs:
   terraform:
     name: "Terraform"
     runs-on: ubuntu-latest
-   # env:
+    env:
+      WORKSPACE_PATH: ./${{ inputs.workspaceName }}
    #   TF_WORKSPACE: ${{ inputs.workspaceName }}
     
     steps:
       - name: Checkout
         uses: actions/checkout@v2.3.5
+     
+      - name: Verify WORKSPACE_PATH existance
+        run: |
+          if [ ! -d ${{ env.WORKSPACE_PATH }} ]; then
+           echo "Error: ${{ env.WORKSPACE_PATH }} not found. Can not continue."
+           exit 1
+          fi
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v1.2.1
@@ -29,39 +37,36 @@ jobs:
       - name: Terraform Format
         id: fmt
         run: terraform fmt -check
-        working-directory: ./${{ inputs.workspaceName }}
+        working-directory: ${{ env.WORKSPACE_PATH }}
 
       - name: Terraform Init
         id: init
         run: terraform init
-        working-directory: ./${{ inputs.workspaceName }}
+        working-directory: ${{ env.WORKSPACE_PATH }}
       
       - name: Terraform Validate
         id: validate
         run: terraform validate -no-color
-        working-directory: workspaceName
+        working-directory: ${{ env.WORKSPACE_PATH }}
 
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v1.1.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Show version
-        run: tflint --version
-
       - name: Init TFLint
         run: tflint --init
-        working-directory: ./${{ inputs.workspaceName }}
+        working-directory: ${{ env.WORKSPACE_PATH }}
 
       - name: Run TFLint
         run: tflint -f compact
-        working-directory: ./${{ inputs.workspaceName }}
+        working-directory: ${{ env.WORKSPACE_PATH }}
 
       - name: Terraform Plan
         id: plan
         if: github.event_name == 'pull_request'
         run: terraform plan -no-color
-        working-directory: ./${{ inputs.workspaceName }}
+        working-directory: ${{ env.WORKSPACE_PATH }}
         continue-on-error: true
 
       - name: Update Pull Request
