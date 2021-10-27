@@ -74,13 +74,6 @@ jobs:
           terraform plan -no-color
         working-directory: ${{ env.WORKSPACE_PATH }}
         continue-on-error: true
-      
-      - name: Echo VARS
-        if: github.event_name == 'pull_request'
-        run: |
-          echo "${{ context.issue.number }} - ${{ env.TF_WORKSPACE }}"
-          echo "${{ context.repo.owner }}"
-          echo "${{ context.repo.repo }}"
 
       - name: Update Pull Request
         uses: actions/github-script@v5.0.0
@@ -106,7 +99,7 @@ jobs:
 
             *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
 
-            github.issues.createComment({
+            github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
