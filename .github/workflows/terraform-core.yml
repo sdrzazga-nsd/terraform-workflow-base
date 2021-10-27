@@ -19,7 +19,7 @@ jobs:
       
     env:
       WORKSPACE_PATH: ./${{ inputs.workspaceName }}
-      TF_WORKSPACE: ${{ inputs.tf_workspace }}
+      #TF_WORKSPACE: ${{ inputs.tf_workspace }}
     
     steps:
       - name: Checkout
