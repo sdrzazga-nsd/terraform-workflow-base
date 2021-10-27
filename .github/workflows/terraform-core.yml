@@ -6,6 +6,9 @@ on:
       workspaceName:
         required: true
         type: string
+      tf_workspace:
+        required: true
+        type: string
     secrets:
       terraformToken:
         required: true
@@ -13,9 +16,10 @@ jobs:
   terraform:
     name: "Terraform"
     runs-on: ubuntu-latest
+      
     env:
       WORKSPACE_PATH: ./${{ inputs.workspaceName }}
-   #   TF_WORKSPACE: ${{ inputs.workspaceName }}
+      TF_WORKSPACE: ${{ inputs.tf_workspace }}
     
     steps:
       - name: Checkout
